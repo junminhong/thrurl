@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	v1 "github.com/junminhong/thrurl/api/v1"
 	"net/http"
+	"os"
 )
 
 func Setup() {
@@ -18,7 +19,11 @@ func Setup() {
 		indexRouting.GET("", getIndex)
 		indexRouting.GET("/:short-url", v1.Test)
 	}
-	router.Run(":9020")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "9020"
+	}
+	router.Run(":" + port)
 }
 
 func getIndex(ctx *gin.Context) {
