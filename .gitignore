@@ -1,0 +1,10 @@
+.env
+*.pem
+*.DS_Store
+.idea
+key.pem
+pubkey.pem
+*.pb.go
+docs
+log
+*.db
