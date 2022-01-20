@@ -7,9 +7,18 @@ import (
 	"os"
 )
 
+func middleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Next()
+	}
+}
+
 func Setup() {
 	router := gin.Default()
 	router.LoadHTMLGlob("view/*")
+	router.Static("/static", "./static")
+	router.Use(middleware())
 	apiRouter := router.Group("api/v1")
 	{
 		apiRouter.POST("/short-url", v1.Short)
@@ -17,6 +26,7 @@ func Setup() {
 	indexRouting := router.Group("/")
 	{
 		indexRouting.GET("", getIndex)
+		indexRouting.GET("/login", getLogin)
 		indexRouting.GET("/:short-url", v1.Test)
 	}
 	port := os.Getenv("PORT")
@@ -27,5 +37,12 @@ func Setup() {
 }
 
 func getIndex(ctx *gin.Context) {
-	ctx.HTML(http.StatusOK, "index.html", nil)
+	ctx.HTML(http.StatusOK, "index.html", gin.H{
+		"title": "Thrurl - 短網址專家",
+	})
+}
+func getLogin(ctx *gin.Context) {
+	ctx.HTML(http.StatusOK, "login.html", gin.H{
+		"title": "Thrurl - 短網址專家",
+	})
 }
