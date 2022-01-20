@@ -33,8 +33,8 @@ var ResponseFlag = map[int]string{
 }
 
 type Response struct {
-	ResultCode int       `json:"result_code"`
-	Message    string    `json:"message"`
-	Data       string    `json:"data"`
-	TimeStamp  time.Time `json:"time_stamp"`
+	ResultCode int         `json:"result_code"`
+	Message    string      `json:"message"`
+	Data       interface{} `json:"data"`
+	TimeStamp  time.Time   `json:"time_stamp"`
 }
