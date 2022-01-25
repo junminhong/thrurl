@@ -19,7 +19,9 @@ import (
 
 // @host      127.0.0.1:9020
 // @BasePath  /api/v1
-// @securityDefinitions.basic  BasicAuth
+// @securityDefinitions.apiKey JWT
+// @in header
+// @name Authorization
 func main() {
 	router.Setup()
 }
