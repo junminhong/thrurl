@@ -15,10 +15,12 @@ import (
 	"github.com/junminhong/thrurl/grpc/proto"
 	"github.com/junminhong/thrurl/model"
 	"github.com/junminhong/thrurl/pkg/handler"
+	"github.com/mssola/user_agent"
 	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -56,14 +58,15 @@ func init() {
 	if err != nil {
 		log.Println("Failed to load env file")
 	}
+
 }
 
 type shortUrlReq struct {
-	SourceUrl   string `json:"source_url" binding:"required"`
-	Expired     string `json:"expired"`
-	SourceUrlB  string `json:"source_url_b"`
-	BUrlPercent string `json:"b_url_percent"`
-	WhoClick    bool   `json:"who_click"`
+	SourceUrl   string    `json:"source_url" binding:"required"`
+	SourceUrlB  string    `json:"source_url_b"`
+	BUrlPercent string    `json:"b_url_percent"`
+	WhoClick    bool      `json:"who_click"`
+	Expired     time.Time `json:"expired"`
 }
 
 func ShortUrl(c *gin.Context) {
@@ -72,6 +75,7 @@ func ShortUrl(c *gin.Context) {
 	if err != nil {
 		// request bind data error
 		log.Println(err.Error())
+		log.Println(request)
 		c.JSON(handler.BadRequest, handler.Response{
 			ResultCode: handler.BadRequest,
 			Message:    handler.ResponseFlag[handler.BadRequest],
@@ -101,7 +105,23 @@ func ShortUrl(c *gin.Context) {
 		if len(tokens) == 2 {
 			// 判斷切割後的token資料是正確，正確切割長度應該為2
 			token := tokens[1]
-			loginHandler(token)
+			shortenID := loginHandler(token, request)
+			if shortenID == "" {
+				c.JSON(handler.BadRequest, handler.Response{
+					ResultCode: handler.BadRequest,
+					Message:    "token失效",
+					Data:       "",
+					TimeStamp:  time.Now().UTC(),
+				})
+				return
+			}
+			c.JSON(handler.OK, handler.Response{
+				ResultCode: handler.OK,
+				Message:    "短網址生成完成",
+				Data:       data{ShortUrl: os.Getenv("HOST_NAME") + "/" + shortenID},
+				TimeStamp:  time.Now().UTC(),
+			})
+			return
 		}
 	}
 	// 沒有登入
@@ -124,8 +144,58 @@ func ShortUrl(c *gin.Context) {
 	return
 }
 
-func loginHandler(token string) {
+func getMemberIDByGrpc(token string) string {
+	conn := grpc.SetupClient()
+	conn.GetMethodConfig("New")
 
+	client := proto.NewTokenAuthServiceClient(conn)
+	result, err := client.VerifyAccessToken(context.Background(), &proto.TokenAuthRequest{Token: token})
+	if err != nil {
+		log.Println(err.Error())
+	}
+	if result != nil {
+		return result.MemberID
+	}
+	return ""
+}
+
+func loginHandler(token string, request *shortUrlReq) string {
+	tmp := getMemberIDByGrpc(token)
+	if tmp == "" {
+		return ""
+	}
+	memberID, err := strconv.Atoi(tmp)
+	malice, maliceType := handler.SafeUrlCheck(request.SourceUrl)
+	var (
+		maliceB     bool
+		maliceTypeB string
+	)
+	if request.SourceUrlB != "" {
+		maliceB, maliceTypeB = handler.SafeUrlCheck(request.SourceUrl)
+	}
+	data := model.ShortUrl{
+		MemberID:       memberID,
+		Source:         request.SourceUrl,
+		SourceB:        request.SourceUrlB,
+		SourceBPercent: request.BUrlPercent,
+		Malice:         malice,
+		MaliceType:     maliceType,
+		MaliceB:        maliceB,
+		MaliceTypeB:    maliceTypeB,
+		WhoClick:       request.WhoClick,
+		Expired:        request.Expired,
+	}
+	postgresDB.Create(&data)
+	data.ShortenID = shortenIDHandler(data.ID)
+	err = postgresDB.Save(&data).Error
+	if err != nil {
+		if err.Error() == "ERROR: duplicate key value violates unique constraint \"short_urls_shorten_id_key\" (SQLSTATE 23505)" {
+			data.ShortenID = shortenIDHandler(data.ID)
+			postgresDB.Save(&data)
+		}
+	}
+	insertBlot(data.ShortenID+",member", data.Source)
+	return data.ShortenID
 }
 
 func shortenIDHandler(id int) string {
@@ -286,13 +356,42 @@ func shorUrlNotLoginHandler(request *ShortUrlReqByNotLogin) (handler.Response, e
 
 func Test(ctx *gin.Context) {
 	// 用blot比較快
-	shortUrl := ""
+	sourceUrl := ""
 	_ = blotDB.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("UrlBucket"))
-		shortUrl = string(bucket.Get([]byte(ctx.Param("short-id"))))
+		sourceUrl = string(bucket.Get([]byte(ctx.Param("short-id"))))
+		if sourceUrl == "" {
+			// 如果是會員的要去抓db會有點時間吧
+			sourceUrl = string(bucket.Get([]byte(ctx.Param("short-id") + ",member")))
+			shortUrl := model.ShortUrl{}
+			postgresDB.Where("shorten_id = ?", ctx.Param("short-id")).First(&shortUrl)
+			if shortUrl.WhoClick {
+				ua := user_agent.New(ctx.GetHeader("User-Agent"))
+				browserName, browserVersion := ua.Browser()
+				shortUrlInfo := model.ShortUrlInfo{
+					ClickerIP:      ctx.ClientIP(),
+					Browser:        browserName,
+					BrowserVersion: browserVersion,
+					Platform:       ua.Platform(),
+					OS:             ua.OS(),
+				}
+				shortUrl.ShortUrlInfos = []model.ShortUrlInfo{shortUrlInfo}
+				postgresDB.Save(&shortUrl)
+			}
+			if shortUrl.SourceB != "" {
+				// 有ab測試
+				log.Println("ab測試")
+				percent, _ := strconv.Atoi(shortUrl.SourceBPercent)
+				sourceUrl = handler.ABTest(shortUrl.Source, shortUrl.SourceB, percent)
+				log.Println(sourceUrl)
+			}
+		}
 		return nil
 	})
-	ctx.Redirect(http.StatusMovedPermanently, shortUrl)
+	ctx.Redirect(http.StatusFound, sourceUrl)
+}
+func shortInfoHandler() {
+
 }
 
 func TestMongo(ctx *gin.Context) {
