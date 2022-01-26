@@ -38,7 +38,7 @@ func Setup() {
 	}
 	indexRouting := router.Group("/")
 	{
-		indexRouting.GET("/:short-url", v1.Test)
+		indexRouting.GET("/:short-id", v1.Test)
 	}
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/junminhong/thrurl/db/postgresql"
 	_ "github.com/junminhong/thrurl/docs"
 	"github.com/junminhong/thrurl/router"
 )
@@ -23,5 +24,6 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	postgresql.MigrateDB()
 	router.Setup()
 }
