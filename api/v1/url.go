@@ -10,6 +10,7 @@ import (
 	"github.com/junminhong/thrurl/db/blot"
 	"github.com/junminhong/thrurl/db/mongo"
 	"github.com/junminhong/thrurl/db/postgresql"
+	"github.com/junminhong/thrurl/db/redis"
 	"github.com/junminhong/thrurl/grpc"
 	"github.com/junminhong/thrurl/grpc/proto"
 	"github.com/junminhong/thrurl/model"
@@ -24,7 +25,14 @@ import (
 
 var blotDB = blot.Setup()
 var mongoDB = mongo.Setup()
+var redisDB = redis.Setup()
 var postgresDB = postgresql.Setup()
+
+const (
+	IPNotLoginLimit = 100
+	IPLoginLimit    = 500
+	ShortenIDLen    = 6
+)
 
 type ShortUrlReqByNotLogin struct {
 	SourceUrl string `json:"source_url" binding:"required"`
@@ -82,6 +90,8 @@ func ShortUrl(c *gin.Context) {
 		})
 		return
 	}
+	callTimes, err := redisDB.Get(context.Background(), c.ClientIP()).Int()
+	redisDB.Set(context.Background(), c.ClientIP(), callTimes+1, 60*time.Second)
 	// bind request data後先判斷一下這筆需求是不是有帶token先區分登入狀態
 	auth := c.Request.Header.Get("Authorization")
 	if auth != "" {
@@ -95,6 +105,15 @@ func ShortUrl(c *gin.Context) {
 		}
 	}
 	// 沒有登入
+	if callTimes >= IPNotLoginLimit {
+		c.JSON(handler.BadRequest, handler.Response{
+			ResultCode: handler.BadRequest,
+			Message:    "你已經達到今天的短網址製作上限嘍",
+			Data:       "",
+			TimeStamp:  time.Now().UTC(),
+		})
+		return
+	}
 	shortenID := notLoginHandler(request.SourceUrl)
 	c.JSON(handler.OK, handler.Response{
 		ResultCode: handler.OK,
@@ -103,18 +122,6 @@ func ShortUrl(c *gin.Context) {
 		TimeStamp:  time.Now().UTC(),
 	})
 	return
-
-	// 先讓人家縮短網址
-	result := handler.SafeUrlCheck(request.SourceUrl)
-	if result {
-		// 惡意網站
-		c.JSON(handler.OK, handler.Response{
-			ResultCode: handler.OK,
-			Message:    "該連結可能為惡意網站",
-			Data:       "",
-			TimeStamp:  time.Now().UTC(),
-		})
-	}
 }
 
 func loginHandler(token string) {
@@ -123,14 +130,14 @@ func loginHandler(token string) {
 
 func shortenIDHandler(id int) string {
 	base62 := handler.Encode(id)
-	salt := handler.GetSalt(6 - len(base62))
-	return base62 + salt
+	salt := handler.GetSalt(ShortenIDLen - len(base62))
+	return salt + base62
 }
 
 func notLoginHandler(sourceUrl string) string {
 	//沒有登入的狀態處理比較簡單，只需要做到縮短網址就好了
-	result := handler.SafeUrlCheck(sourceUrl)
-	data := model.ShortUrl{Source: sourceUrl, Malice: result}
+	result, maliceType := handler.SafeUrlCheck(sourceUrl)
+	data := model.ShortUrl{Source: sourceUrl, Malice: result, MaliceType: maliceType}
 	postgresDB.Create(&data)
 	data.ShortenID = shortenIDHandler(data.ID)
 	err := postgresDB.Save(&data).Error
