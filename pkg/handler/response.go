@@ -2,6 +2,7 @@ package handler
 
 import "time"
 
+// result code可以統一
 const (
 	// OK 請求成功，適用Read、Update
 	// Created 請求成功，適用Create
@@ -20,6 +21,16 @@ const (
 	Forbidden    = 403
 	NotFound     = 404
 )
+
+const (
+	TokenError1 = 1
+	TokenError2 = 2
+)
+
+var ErrorFlag = map[int]string{
+	TokenError1: "該請求需攜帶token",
+	TokenError2: "該token非法或已失效",
+}
 
 var ResponseFlag = map[int]string{
 	OK:           "請求成功",

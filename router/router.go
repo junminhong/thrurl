@@ -4,10 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	v1 "github.com/junminhong/thrurl/api/v1"
+	"github.com/junminhong/thrurl/pkg/handler"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
 	"os"
+	"strings"
+	"time"
 )
 
 func init() {
@@ -27,6 +30,28 @@ func middleware() gin.HandlerFunc {
 	}
 }
 
+func checkToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokens := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")
+		response := handler.Response{
+			ResultCode: handler.TokenError1,
+			Message:    handler.ErrorFlag[handler.TokenError1],
+			Data:       "",
+		}
+		if len(tokens) != 2 {
+			response.TimeStamp = time.Now().UTC()
+			c.AbortWithStatusJSON(handler.OK, response)
+			return
+		}
+		if tokens[1] == "" {
+			response.TimeStamp = time.Now().UTC()
+			c.AbortWithStatusJSON(handler.OK, response)
+			return
+		}
+		c.Next()
+	}
+}
+
 func Setup() {
 	router := gin.Default()
 	router.LoadHTMLGlob("view/*")
@@ -35,6 +60,10 @@ func Setup() {
 	apiRouter := router.Group("api/v1")
 	{
 		apiRouter.POST("/short-url", v1.ShortUrl)
+	}
+	needTokenRouter := router.Group("api/v1").Use(checkToken())
+	{
+		needTokenRouter.GET("/url-list", v1.AllUrlList)
 	}
 	indexRouting := router.Group("/")
 	{
