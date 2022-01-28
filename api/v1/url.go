@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"database/sql"
 	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -26,9 +27,10 @@ var redisDB = redis.Setup()
 var postgresDB = postgresql.Setup()
 
 const (
-	IPNotLoginLimit = 100
-	IPLoginLimit    = 500
-	ShortenIDLen    = 6
+	IPNotLoginLimit  = 100
+	IPLoginLimit     = 500
+	ShortenIDLen     = 6
+	AllShortUrlLimit = 10
 )
 
 type ShortUrlReqByNotLogin struct {
@@ -267,6 +269,7 @@ func Test(ctx *gin.Context) {
 // 分頁問題？？
 func AllUrlList(c *gin.Context) {
 	token := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")[1]
+	page, _ := strconv.Atoi(c.Query("page"))
 	memberID := getMemberIDByGrpc(token)
 	if memberID == "" {
 		// 沒有辦法取得member id 代表該token不是合法的或已經失效了
@@ -279,7 +282,15 @@ func AllUrlList(c *gin.Context) {
 		return
 	}
 	// 有取得memberID
-	rows, err := postgresDB.Model(&model.ShortUrl{}).Where("member_id = ?", memberID).Rows()
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	if page == 0 {
+		rows, err = postgresDB.Model(&model.ShortUrl{}).Where("member_id = ?", memberID).Rows()
+	} else {
+		rows, err = postgresDB.Model(&model.ShortUrl{}).Where("member_id = ?", memberID).Limit(AllShortUrlLimit).Offset((page - 1) * AllShortUrlLimit).Rows()
+	}
 	defer rows.Close()
 	if err != nil {
 		log.Println(err.Error())
@@ -294,6 +305,31 @@ func AllUrlList(c *gin.Context) {
 		ResultCode: handler.OK,
 		Message:    handler.ResponseFlag[handler.OK],
 		Data:       shortUrls,
+		TimeStamp:  time.Now().UTC(),
+	})
+}
+
+func AllUrlPaginate(c *gin.Context) {
+	token := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")[1]
+	memberID := getMemberIDByGrpc(token)
+	if memberID == "" {
+		// 沒有辦法取得member id 代表該token不是合法的或已經失效了
+		c.JSON(handler.OK, handler.Response{
+			ResultCode: handler.TokenError2,
+			Message:    handler.ErrorFlag[handler.TokenError2],
+			Data:       "",
+			TimeStamp:  time.Now(),
+		})
+		return
+	}
+	// 有取得memberID
+	var count int64
+	postgresDB.Model(&model.ShortUrl{}).Where("member_id = ?", memberID).Count(&count)
+	page := count / AllShortUrlLimit
+	c.JSON(handler.OK, handler.Response{
+		ResultCode: handler.OK,
+		Message:    handler.ResponseFlag[handler.OK],
+		Data:       page,
 		TimeStamp:  time.Now().UTC(),
 	})
 }
