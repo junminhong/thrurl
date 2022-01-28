@@ -2,13 +2,10 @@ package v1
 
 import (
 	"context"
-	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/junminhong/thrurl/db/blot"
-	"github.com/junminhong/thrurl/db/mongo"
 	"github.com/junminhong/thrurl/db/postgresql"
 	"github.com/junminhong/thrurl/db/redis"
 	"github.com/junminhong/thrurl/grpc"
@@ -16,7 +13,6 @@ import (
 	"github.com/junminhong/thrurl/model"
 	"github.com/junminhong/thrurl/pkg/handler"
 	"github.com/mssola/user_agent"
-	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"net/http"
 	"os"
@@ -26,7 +22,6 @@ import (
 )
 
 var blotDB = blot.Setup()
-var mongoDB = mongo.Setup()
 var redisDB = redis.Setup()
 var postgresDB = postgresql.Setup()
 
@@ -147,7 +142,6 @@ func ShortUrl(c *gin.Context) {
 func getMemberIDByGrpc(token string) string {
 	conn := grpc.SetupClient()
 	conn.GetMethodConfig("New")
-
 	client := proto.NewTokenAuthServiceClient(conn)
 	result, err := client.VerifyAccessToken(context.Background(), &proto.TokenAuthRequest{Token: token})
 	if err != nil {
@@ -232,128 +226,6 @@ func insertBlot(shortenID string, sourceUrl string) {
 	}
 }
 
-// @Summary 縮短網址
-// @Tags url
-// @version 1.0
-// @Accept application/json
-// @produce application/json
-// @param data body ShortUrlReqByNotLogin true "縮短網址請求資料"
-// @Success 200 {object} handler.Response
-// @Router /short-url [post]
-func ShortUrlByNotLogin(ctx *gin.Context) {
-	request := &ShortUrlReqByNotLogin{}
-	err := ctx.BindJSON(request)
-	response := handler.Response{}
-	if err != nil {
-		response = handler.Response{
-			ResultCode: handler.BadRequest,
-			Message:    handler.ResponseFlag[handler.BadRequest],
-			Data:       &data{ShortUrl: ""},
-			TimeStamp:  time.Now().UTC(),
-		}
-		ctx.JSON(response.ResultCode, response)
-		log.Println(err)
-		return
-	}
-	response, err = shorUrlNotLoginHandler(request)
-	if err != nil {
-		log.Println(err)
-	}
-	ctx.JSON(response.ResultCode, response)
-}
-
-// @Summary 縮短網址(有會員)
-// @Tags url
-// @version 1.0
-// @Accept application/json
-// @produce application/json
-// @Security ApiKeyAuth
-// @param Authorization header string true "Authorization" default(Bearer <Add access token here>)
-// @param data body ShortUrlReqByLogin true "縮短網址請求資料"
-// @Success 200 {object} handler.Response
-// @Router /short-url [post]
-/*func shortUrlByLogin() {
-	auth := ctx.Request.Header.Get("Authorization")
-	if auth != "" {
-
-	}
-	// 代表有登入
-	tokenAry := strings.Split(auth, "Bearer ")
-	if len(tokenAry) != 2 {
-		response = handler.Response{
-			ResultCode: handler.Forbidden,
-			Message:    handler.ResponseFlag[handler.Forbidden],
-			Data:       &data{ShortUrl: ""},
-			TimeStamp:  time.Now().UTC(),
-		}
-		ctx.JSON(response.ResultCode, response)
-		return
-	}
-	rpc(tokenAry[1], request)
-}*/
-
-func rpc(token string, request *ShortUrlReqByLogin) {
-	conn := grpc.SetupClient()
-	conn.GetMethodConfig("New")
-
-	client := proto.NewTokenAuthServiceClient(conn)
-	result, err := client.VerifyAccessToken(context.Background(), &proto.TokenAuthRequest{Token: token})
-	if err != nil {
-		log.Println(err.Error())
-	}
-	log.Println(result.MemberID)
-	collection := mongoDB.Database("thrurl").Collection("record")
-	res, _ := collection.InsertOne(context.Background(), bson.M{
-		"member_id":    result.MemberID,
-		"source_a":     request.SourceUrl,
-		"source_b":     request.SourceUrlB,
-		"click_amount": 0,
-	})
-	id := res.InsertedID
-	log.Println(id)
-}
-
-func shorUrlLoginHandler(token string, request *ShortUrlReqByLogin) (handler.Response, error) {
-	// 處理過期、AB測試、點擊成效
-	response := handler.Response{
-		ResultCode: handler.OK,
-		Message:    handler.ResponseFlag[handler.OK],
-		Data:       data{ShortUrl: ""},
-		TimeStamp:  time.Now().UTC(),
-	}
-	return response, nil
-}
-
-func shorUrlNotLoginHandler(request *ShortUrlReqByNotLogin) (handler.Response, error) {
-	/*for index := 1; index < 1000; index++ {
-		base62 := Encode(index)
-		salt := getTimeNano(6 - len(base62))
-		log.Println(base62 + salt)
-	}*/
-	shortUrl := uuid.New()
-	err := blotDB.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte("UrlBucket"))
-		err := bucket.Put([]byte(strings.Split(shortUrl.String(), "-")[0]), []byte(request.SourceUrl))
-		return err
-	})
-	if err != nil {
-		response := handler.Response{
-			ResultCode: handler.BadRequest,
-			Message:    handler.ResponseFlag[handler.BadRequest],
-			Data:       data{ShortUrl: ""},
-			TimeStamp:  time.Now().UTC(),
-		}
-		return response, err
-	}
-	response := handler.Response{
-		ResultCode: handler.OK,
-		Message:    handler.ResponseFlag[handler.OK],
-		Data:       data{ShortUrl: os.Getenv("HOST_NAME") + "/" + strings.Split(shortUrl.String(), "-")[0]},
-		TimeStamp:  time.Now().UTC(),
-	}
-	return response, err
-}
-
 func Test(ctx *gin.Context) {
 	// 用blot比較快
 	sourceUrl := ""
@@ -390,31 +262,38 @@ func Test(ctx *gin.Context) {
 	})
 	ctx.Redirect(http.StatusFound, sourceUrl)
 }
-func shortInfoHandler() {
 
-}
-
-func TestMongo(ctx *gin.Context) {
-	collection := mongoDB.Database("thrurl").Collection("record")
-	/*cntx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	  defer cancel()
-	  res, _ := collection.InsertOne(cntx, bson.M{"name": "pi", "value": 3.14159})
-	  id := res.InsertedID
-	  log.Println(id)*/
-
-	var result struct {
-		Name  string
-		Value float64
+// AllUrlList 取得某的會員的所有url資料
+// 分頁問題？？
+func AllUrlList(c *gin.Context) {
+	token := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")[1]
+	memberID := getMemberIDByGrpc(token)
+	if memberID == "" {
+		// 沒有辦法取得member id 代表該token不是合法的或已經失效了
+		c.JSON(handler.OK, handler.Response{
+			ResultCode: handler.TokenError2,
+			Message:    handler.ErrorFlag[handler.TokenError2],
+			Data:       "",
+			TimeStamp:  time.Now(),
+		})
+		return
 	}
-
-	//objID, _ := primitive.ObjectIDFromHex("61e9807cf8d9a401fbf98275")
-	filter := bson.M{"name": "pi"}
-	cntx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err := collection.FindOne(cntx, filter).Decode(&result)
+	// 有取得memberID
+	rows, err := postgresDB.Model(&model.ShortUrl{}).Where("member_id = ?", memberID).Rows()
+	defer rows.Close()
 	if err != nil {
-		// Do something when no record was found
-		fmt.Println("record does not exist")
+		log.Println(err.Error())
 	}
-	log.Println(result)
+	shortUrls := make([]model.ShortUrlResponse, 0)
+	for rows.Next() {
+		shortUrl := model.ShortUrlResponse{}
+		postgresDB.ScanRows(rows, &shortUrl)
+		shortUrls = append(shortUrls, shortUrl)
+	}
+	c.JSON(handler.OK, handler.Response{
+		ResultCode: handler.OK,
+		Message:    handler.ResponseFlag[handler.OK],
+		Data:       shortUrls,
+		TimeStamp:  time.Now().UTC(),
+	})
 }
