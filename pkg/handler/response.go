@@ -23,13 +23,17 @@ const (
 )
 
 const (
-	TokenError1 = 1
-	TokenError2 = 2
+	TokenError1         = 1000
+	TokenError2         = 1001
+	RequestFormatError1 = 2000
+	DataBaseError1      = 3000
 )
 
 var ErrorFlag = map[int]string{
-	TokenError1: "該請求需攜帶token",
-	TokenError2: "該token非法或已失效",
+	TokenError1:         "該請求需攜帶token",
+	TokenError2:         "該token非法或已失效",
+	RequestFormatError1: "請求參數格式錯誤，請依照API文件重新發起請求",
+	DataBaseError1:      "資料更新失敗，詳細問題請洽工程師",
 }
 
 var ResponseFlag = map[int]string{

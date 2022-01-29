@@ -64,6 +64,7 @@ func Setup() {
 	needTokenRouter := router.Group("api/v1").Use(checkToken())
 	{
 		needTokenRouter.GET("/url-list", v1.AllUrlList)
+		needTokenRouter.POST("/edit-url", v1.EditShortUrl)
 		needTokenRouter.GET("/url-paginate", v1.AllUrlPaginate)
 	}
 	indexRouting := router.Group("/")

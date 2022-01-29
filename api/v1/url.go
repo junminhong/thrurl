@@ -59,6 +59,7 @@ func init() {
 }
 
 type shortUrlReq struct {
+	ShortenID   string    `json:"shorten_id"`
 	SourceUrl   string    `json:"source_url" binding:"required"`
 	SourceUrlB  string    `json:"source_url_b"`
 	BUrlPercent string    `json:"b_url_percent"`
@@ -330,6 +331,57 @@ func AllUrlPaginate(c *gin.Context) {
 		ResultCode: handler.OK,
 		Message:    handler.ResponseFlag[handler.OK],
 		Data:       page,
+		TimeStamp:  time.Now().UTC(),
+	})
+}
+
+func EditShortUrl(c *gin.Context) {
+	token := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")[1]
+	memberID := getMemberIDByGrpc(token)
+	if memberID == "" {
+		// 沒有辦法取得member id 代表該token不是合法的或已經失效了
+		c.JSON(handler.OK, handler.Response{
+			ResultCode: handler.TokenError2,
+			Message:    handler.ErrorFlag[handler.TokenError2],
+			Data:       "",
+			TimeStamp:  time.Now(),
+		})
+		return
+	}
+	request := &shortUrlReq{}
+	err := c.BindJSON(request)
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(handler.OK, handler.Response{
+			ResultCode: handler.RequestFormatError1,
+			Message:    handler.ErrorFlag[handler.RequestFormatError1],
+			Data:       "",
+			TimeStamp:  time.Now().UTC(),
+		})
+		return
+	}
+	shortUrl := model.ShortUrl{}
+	postgresDB.Where("shorten_id = ?", request.ShortenID).First(&shortUrl)
+	shortUrl.Source = request.SourceUrl
+	shortUrl.SourceB = request.SourceUrlB
+	shortUrl.WhoClick = request.WhoClick
+	shortUrl.SourceBPercent = request.BUrlPercent
+	shortUrl.Expired = request.Expired
+	err = postgresDB.Save(&shortUrl).Error
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(handler.OK, handler.Response{
+			ResultCode: handler.DataBaseError1,
+			Message:    handler.ErrorFlag[handler.DataBaseError1],
+			Data:       "",
+			TimeStamp:  time.Now().UTC(),
+		})
+		return
+	}
+	c.JSON(handler.OK, handler.Response{
+		ResultCode: handler.OK,
+		Message:    handler.ResponseFlag[handler.OK],
+		Data:       "",
 		TimeStamp:  time.Now().UTC(),
 	})
 }
