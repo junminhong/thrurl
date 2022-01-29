@@ -96,14 +96,15 @@ func ShortUrl(c *gin.Context) {
 	redisDB.Set(context.Background(), c.ClientIP(), callTimes+1, 60*time.Second)
 	// bind request data後先判斷一下這筆需求是不是有帶token先區分登入狀態
 	auth := c.Request.Header.Get("Authorization")
+	token := ""
 	if auth != "" {
 		// 此筆請求有帶Authorization
 		// 做字串切割，把token分出來
 		tokens := strings.Split(auth, "Bearer ")
 		if len(tokens) == 2 {
 			// 判斷切割後的token資料是正確，正確切割長度應該為2
-			token := tokens[1]
-			shortenID := loginHandler(token, request)
+			token = tokens[1]
+			/*shortenID := loginHandler(token, request)
 			if shortenID == "" {
 				c.JSON(handler.BadRequest, handler.Response{
 					ResultCode: handler.BadRequest,
@@ -119,7 +120,7 @@ func ShortUrl(c *gin.Context) {
 				Data:       data{ShortUrl: os.Getenv("HOST_NAME") + "/" + shortenID},
 				TimeStamp:  time.Now().UTC(),
 			})
-			return
+			return*/
 		}
 	}
 	// 沒有登入
@@ -132,7 +133,7 @@ func ShortUrl(c *gin.Context) {
 		})
 		return
 	}
-	shortenID := notLoginHandler(request.SourceUrl)
+	shortenID := notLoginHandler(token, request.SourceUrl)
 	c.JSON(handler.OK, handler.Response{
 		ResultCode: handler.OK,
 		Message:    "短網址生成完成",
@@ -201,10 +202,11 @@ func shortenIDHandler(id int) string {
 	return salt + base62
 }
 
-func notLoginHandler(sourceUrl string) string {
+func notLoginHandler(token string, sourceUrl string) string {
 	//沒有登入的狀態處理比較簡單，只需要做到縮短網址就好了
-	result, maliceType := handler.SafeUrlCheck(sourceUrl)
-	data := model.ShortUrl{Source: sourceUrl, Malice: result, MaliceType: maliceType}
+	//result, maliceType := handler.SafeUrlCheck(sourceUrl)
+	memberID, _ := strconv.Atoi(getMemberIDByGrpc(token))
+	data := model.ShortUrl{Source: sourceUrl, MemberID: memberID}
 	postgresDB.Create(&data)
 	data.ShortenID = shortenIDHandler(data.ID)
 	err := postgresDB.Save(&data).Error
@@ -386,6 +388,64 @@ func EditShortUrl(c *gin.Context) {
 		ResultCode: handler.OK,
 		Message:    handler.ResponseFlag[handler.OK],
 		Data:       "",
+		TimeStamp:  time.Now().UTC(),
+	})
+}
+
+type checkShortUrlData struct {
+	Source string `json:"source"`
+	Malice bool   `json:"malice"`
+}
+
+func GotoShortUrl(c *gin.Context) {
+	shortenID := c.Query("shorten_id")
+	shortUrl := model.ShortUrl{}
+	postgresDB.Where("shorten_id = ?", shortenID).First(&shortUrl)
+	if shortUrl.WhoClick {
+		ua := user_agent.New(c.GetHeader("User-Agent"))
+		browserName, browserVersion := ua.Browser()
+		shortUrlInfo := model.ShortUrlInfo{
+			ClickerIP:      c.ClientIP(),
+			Browser:        browserName,
+			BrowserVersion: browserVersion,
+			Platform:       ua.Platform(),
+			OS:             ua.OS(),
+		}
+		shortUrl.ShortUrlInfos = []model.ShortUrlInfo{shortUrlInfo}
+		postgresDB.Save(&shortUrl)
+	}
+	c.JSON(handler.OK, handler.Response{
+		ResultCode: handler.OK,
+		Message:    handler.ResponseFlag[handler.OK],
+		Data:       "",
+		TimeStamp:  time.Now().UTC(),
+	})
+}
+
+func CheckShortUrl(c *gin.Context) {
+	shortenID := c.Query("shorten_id")
+	sourceUrl := ""
+	_ = blotDB.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("UrlBucket"))
+		sourceUrl = string(bucket.Get([]byte(shortenID)))
+		if sourceUrl == "" {
+			// 如果是會員的要去抓db會有點時間吧
+			sourceUrl = string(bucket.Get([]byte(shortenID + ",member")))
+			shortUrl := model.ShortUrl{}
+			postgresDB.Where("shorten_id = ?", shortenID).First(&shortUrl)
+			if shortUrl.SourceB != "" {
+				// 有ab測試
+				percent, _ := strconv.Atoi(shortUrl.SourceBPercent)
+				sourceUrl = handler.ABTest(shortUrl.Source, shortUrl.SourceB, percent)
+			}
+		}
+		return nil
+	})
+	malice, _ := handler.SafeUrlCheck(sourceUrl)
+	c.JSON(handler.OK, handler.Response{
+		ResultCode: handler.OK,
+		Message:    handler.ResponseFlag[handler.OK],
+		Data:       checkShortUrlData{Source: sourceUrl, Malice: malice},
 		TimeStamp:  time.Now().UTC(),
 	})
 }

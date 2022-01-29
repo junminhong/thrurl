@@ -60,6 +60,8 @@ func Setup() {
 	apiRouter := router.Group("api/v1")
 	{
 		apiRouter.POST("/short-url", v1.ShortUrl)
+		apiRouter.GET("/check-url", v1.CheckShortUrl)
+		apiRouter.GET("/goto-url", v1.GotoShortUrl)
 	}
 	needTokenRouter := router.Group("api/v1").Use(checkToken())
 	{
@@ -67,10 +69,10 @@ func Setup() {
 		needTokenRouter.POST("/edit-url", v1.EditShortUrl)
 		needTokenRouter.GET("/url-paginate", v1.AllUrlPaginate)
 	}
-	indexRouting := router.Group("/")
+	/*indexRouting := router.Group("/")
 	{
 		indexRouting.GET("/:short-id", v1.Test)
-	}
+	}*/
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "9020"
