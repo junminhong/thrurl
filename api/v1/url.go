@@ -298,9 +298,13 @@ func AllUrlList(c *gin.Context) {
 	}
 	shortUrls := make([]model.ShortUrlResponse, 0)
 	for rows.Next() {
-		shortUrl := model.ShortUrlResponse{}
+		shortUrlResponse := model.ShortUrlResponse{}
+		shortUrl := model.ShortUrl{}
+		postgresDB.ScanRows(rows, &shortUrlResponse)
 		postgresDB.ScanRows(rows, &shortUrl)
-		shortUrls = append(shortUrls, shortUrl)
+		shortUrlInfoCount := postgresDB.Model(&shortUrl).Association("ShortUrlInfos").Count()
+		shortUrlResponse.ClickCount = shortUrlInfoCount
+		shortUrls = append(shortUrls, shortUrlResponse)
 	}
 	c.JSON(handler.OK, handler.Response{
 		ResultCode: handler.OK,
