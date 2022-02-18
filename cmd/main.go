@@ -1,9 +1,21 @@
 package main
 
 import (
-	"github.com/junminhong/thrurl/db/postgresql"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"github.com/junminhong/thrurl/api/v1/delivery/http"
+	"github.com/junminhong/thrurl/api/v1/delivery/http/middleware"
+	"github.com/junminhong/thrurl/api/v1/repository"
+	"github.com/junminhong/thrurl/api/v1/usecase"
 	_ "github.com/junminhong/thrurl/docs"
-	"github.com/junminhong/thrurl/router"
+	"github.com/junminhong/thrurl/domain"
+	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"log"
+	"os"
 )
 
 // @title           Thrurl API
@@ -23,7 +35,67 @@ import (
 // @securityDefinitions.apiKey JWT
 // @in header
 // @name Authorization
+
+func init() {
+	path, err := os.Getwd()
+	if err != nil {
+		log.Println(err.Error())
+	}
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(path)
+	if err := viper.ReadInConfig(); err != nil {
+		log.Println(err.Error())
+	}
+}
+
+type postgresDB struct {
+	db *gorm.DB
+}
+
+func setUpDB() *postgresDB {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s TimeZone=Asia/Taipei",
+		viper.GetString("APP.DB_HOST"),
+		viper.GetString("APP.DB_USERNAME"),
+		viper.GetString("APP.DB_PASSWORD"),
+		viper.GetString("APP.DB_DATABASE"),
+		viper.GetString("APP.DB_PORT"),
+	)
+	log.Println(dsn)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		log.Println("Failed to connect DB")
+	}
+	return &postgresDB{db: db}
+}
+func (postgresDB *postgresDB) migrationDB() {
+	err := postgresDB.db.AutoMigrate(&domain.ShortenUrl{}, &domain.ShortenUrlInfo{})
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
+func setUpRedis() *redis.Client {
+	client := redis.NewClient(&redis.Options{
+		Addr:     viper.GetString("APP.REDIS_HOST") + ":" + viper.GetString("APP.REDIS_PORT"),
+		Password: viper.GetString("APP.REDIS_PASSWORD"), // no password set
+		DB:       0,                                     // use default DB
+	})
+	return client
+}
+func setUpDomain(router *gin.Engine, db *gorm.DB, redis *redis.Client) {
+	shortenUrlRepo := repository.NewShortenUrlRepo(db, redis)
+	shortenUrlCase := usecase.NewShortenUrlUseCase(shortenUrlRepo)
+	http.NewShortenUrlHandler(router, shortenUrlCase, shortenUrlRepo)
+}
+
 func main() {
-	postgresql.MigrateDB()
-	router.Setup()
+	router := gin.Default()
+	router.Use(middleware.Middleware())
+	db := setUpDB()
+	redisClient := setUpRedis()
+	setUpDomain(router, db.db, redisClient)
+	db.migrationDB()
+	router.Run("127.0.0.1:9220")
 }

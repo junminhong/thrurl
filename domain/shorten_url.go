@@ -1,11 +1,13 @@
-package model
+package domain
 
 import (
+	"github.com/junminhong/thrurl/pkg/requester"
+	"github.com/junminhong/thrurl/pkg/responser"
 	"gorm.io/gorm"
 	"time"
 )
 
-type ShortUrl struct {
+type ShortenUrl struct {
 	gorm.Model
 	ID             int    `gorm:"primary_key;auto_increment;not_null"`
 	ShortenID      string `gorm:"unique"`
@@ -18,7 +20,7 @@ type ShortUrl struct {
 	MaliceB        bool
 	MaliceTypeB    string
 	WhoClick       bool
-	ShortUrlInfos  []ShortUrlInfo `gorm:"foreignKey:ShortUrlID"`
+	ShortUrlInfos  []ShortenUrlInfo `gorm:"foreignKey:ShortUrlID"`
 	Expired        time.Time
 }
 
@@ -32,7 +34,7 @@ type ShortUrlResponse struct {
 	Expired        time.Time `json:"expired"`
 }
 
-type ShortUrlInfo struct {
+type ShortenUrlInfo struct {
 	gorm.Model
 	ShortUrlID     int
 	ClickerIP      string
@@ -43,4 +45,13 @@ type ShortUrlInfo struct {
 	Platform       string
 	OS             string
 	CreatedAt      time.Time `gorm:"autoCreateTime"`
+}
+
+type ShortenUrlRepository interface {
+	StoreShortenUrl() error
+}
+
+type ShortenUrlUseCase interface {
+	// ShortenUrl 建立短網址
+	ShortenUrl(request requester.ShortenUrl) responser.Response
 }
