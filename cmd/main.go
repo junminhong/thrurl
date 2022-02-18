@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	"github.com/junminhong/thrurl/api/v1/delivery/http"
+	deliver "github.com/junminhong/thrurl/api/v1/delivery/http"
 	"github.com/junminhong/thrurl/api/v1/delivery/http/middleware"
 	"github.com/junminhong/thrurl/api/v1/repository"
 	"github.com/junminhong/thrurl/api/v1/usecase"
@@ -87,7 +87,7 @@ func setUpRedis() *redis.Client {
 func setUpDomain(router *gin.Engine, db *gorm.DB, redis *redis.Client) {
 	shortenUrlRepo := repository.NewShortenUrlRepo(db, redis)
 	shortenUrlCase := usecase.NewShortenUrlUseCase(shortenUrlRepo)
-	http.NewShortenUrlHandler(router, shortenUrlCase, shortenUrlRepo)
+	deliver.NewShortenUrlHandler(router, shortenUrlCase, shortenUrlRepo)
 }
 
 func main() {
@@ -96,6 +96,6 @@ func main() {
 	db := setUpDB()
 	redisClient := setUpRedis()
 	setUpDomain(router, db.db, redisClient)
-	db.migrationDB()
+	//db.migrationDB()
 	router.Run("127.0.0.1:9220")
 }

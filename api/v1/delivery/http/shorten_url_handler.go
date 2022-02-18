@@ -17,6 +17,7 @@ type shortenUrlHandler struct {
 func NewShortenUrlHandler(router *gin.Engine, shortenUrlUseCase domain.ShortenUrlUseCase, shortenUrlRepo domain.ShortenUrlRepository) {
 	handler := &shortenUrlHandler{shortenUrlUseCase, shortenUrlRepo}
 	router.POST("/api/v1/url", handler.ShortenUrl)
+	router.GET("/:shorten-id", handler.RedirectShortenUrl)
 }
 
 // ShortenUrl
@@ -47,4 +48,9 @@ func (shortenUrlHandler *shortenUrlHandler) ShortenUrl(c *gin.Context) {
 
 	response := shortenUrlHandler.shortenUrlUseCase.ShortenUrl(request)
 	c.JSON(http.StatusOK, response)
+}
+
+func (shortenUrlHandler *shortenUrlHandler) RedirectShortenUrl(c *gin.Context) {
+	url := shortenUrlHandler.shortenUrlUseCase.GetShortenUrl(c.Param("shorten-id"))
+	c.Redirect(http.StatusMovedPermanently, url)
 }

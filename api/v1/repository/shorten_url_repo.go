@@ -3,7 +3,6 @@ package repository
 import (
 	"github.com/go-redis/redis/v8"
 	"github.com/junminhong/thrurl/domain"
-	"github.com/junminhong/thrurl/pkg/handler"
 	"gorm.io/gorm"
 )
 
@@ -16,13 +15,19 @@ func NewShortenUrlRepo(db *gorm.DB, redis *redis.Client) domain.ShortenUrlReposi
 	return &shortenUrlRepo{db, redis}
 }
 
-func (shortenUrlRepo *shortenUrlRepo) StoreShortenUrl() error {
+func (shortenUrlRepo *shortenUrlRepo) CreateShortenUrl() (*domain.ShortenUrl, error) {
 	shortenUrl := domain.ShortenUrl{}
 	if err := shortenUrlRepo.db.Create(&shortenUrl).Error; err != nil {
-		return shortenUrlRepo.db.Create(&shortenUrl).Error
+		return &shortenUrl, shortenUrlRepo.db.Create(&shortenUrl).Error
 	}
-	base62 := handler.Encode(shortenUrl.ID)
-	saltBase62 := handler.GetSalt(len(base62))
-	shortenUrl.ShortenID = saltBase62 + base62
-	return shortenUrlRepo.db.Save(&shortenUrl).Error
+	return &shortenUrl, nil
+}
+
+func (shortenUrlRepo *shortenUrlRepo) UpdateShortenUrl(shortenUrl *domain.ShortenUrl) error {
+	return shortenUrlRepo.db.Save(shortenUrl).Error
+}
+
+func (shortenUrlRepo *shortenUrlRepo) GetUrlByShortenID(shortenID string) (shortenUrl *domain.ShortenUrl) {
+	shortenUrlRepo.db.Where("shorten_id=?", shortenID).First(&shortenUrl)
+	return shortenUrl
 }

@@ -48,10 +48,13 @@ type ShortenUrlInfo struct {
 }
 
 type ShortenUrlRepository interface {
-	StoreShortenUrl() error
+	CreateShortenUrl() (*ShortenUrl, error)
+	UpdateShortenUrl(shortenUrl *ShortenUrl) error
+	GetUrlByShortenID(shortenID string) (shortenUrl *ShortenUrl)
 }
 
 type ShortenUrlUseCase interface {
 	// ShortenUrl 建立短網址
 	ShortenUrl(request requester.ShortenUrl) responser.Response
+	GetShortenUrl(shortenID string) string
 }
