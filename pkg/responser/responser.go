@@ -14,6 +14,7 @@ var (
 	ReqBindErr         = add(1000, "請依照API文件進行請求")
 	StoreShortenUrlErr = add(1001, "shorten url儲存失敗")
 	StoreShortenUrlOk  = add(1002, "shorten url儲存成功")
+	UrlLinkNotFoundErr = add(1003, "無效的連結")
 )
 
 func New(code int, msg string) ResponseFlag {

@@ -16,7 +16,7 @@ func NewShortenUrlUseCase(shortenUrlRepo domain.ShortenUrlRepository) domain.Sho
 	return &shortenUrlUseCase{shortenUrlRepo}
 }
 
-func (shortenUrlUseCase *shortenUrlUseCase) ShortenUrl(request requester.ShortenUrl) responser.Response {
+func (shortenUrlUseCase *shortenUrlUseCase) ShortenUrl(request requester.ShortenUrl, memberUUID string) responser.Response {
 	shortenUrl, err := shortenUrlUseCase.shortenUrlRepo.CreateShortenUrl()
 	if err != nil {
 		return responser.Response{
@@ -30,6 +30,7 @@ func (shortenUrlUseCase *shortenUrlUseCase) ShortenUrl(request requester.Shorten
 	saltBase62 := handler.GetSalt(6 - len(base62))
 	shortenUrl.Source = request.SourceUrl
 	shortenUrl.ShortenID = saltBase62 + base62
+	shortenUrl.MemberID = memberUUID
 	if err := shortenUrlUseCase.shortenUrlRepo.UpdateShortenUrl(shortenUrl); err != nil {
 		return responser.Response{
 			ResultCode: responser.StoreShortenUrlErr.Code(),

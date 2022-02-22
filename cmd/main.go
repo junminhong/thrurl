@@ -11,6 +11,7 @@ import (
 	_ "github.com/junminhong/thrurl/docs"
 	"github.com/junminhong/thrurl/domain"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -84,10 +85,18 @@ func setUpRedis() *redis.Client {
 	})
 	return client
 }
-func setUpDomain(router *gin.Engine, db *gorm.DB, redis *redis.Client) {
+func setUpDomain(router *gin.Engine, grpcClient *grpc.ClientConn, db *gorm.DB, redis *redis.Client) {
 	shortenUrlRepo := repository.NewShortenUrlRepo(db, redis)
 	shortenUrlCase := usecase.NewShortenUrlUseCase(shortenUrlRepo)
-	deliver.NewShortenUrlHandler(router, shortenUrlCase, shortenUrlRepo)
+	deliver.NewShortenUrlHandler(router, grpcClient, shortenUrlCase, shortenUrlRepo)
+}
+
+func setUpGrpcClient() *grpc.ClientConn {
+	conn, err := grpc.Dial("127.0.0.1:9205", grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("failed to dial: %v", err)
+	}
+	return conn
 }
 
 func main() {
@@ -95,7 +104,8 @@ func main() {
 	router.Use(middleware.Middleware())
 	db := setUpDB()
 	redisClient := setUpRedis()
-	setUpDomain(router, db.db, redisClient)
+	grpcClient := setUpGrpcClient()
+	setUpDomain(router, grpcClient, db.db, redisClient)
 	//db.migrationDB()
 	router.Run("127.0.0.1:9220")
 }
