@@ -1,4 +1,4 @@
-package usecase
+package application
 
 import (
 	"github.com/junminhong/thrurl/domain"

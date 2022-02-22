@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	deliver "github.com/junminhong/thrurl/api/v1/delivery/http"
-	"github.com/junminhong/thrurl/api/v1/delivery/http/middleware"
-	"github.com/junminhong/thrurl/api/v1/repository"
-	"github.com/junminhong/thrurl/api/v1/usecase"
+	"github.com/junminhong/thrurl/application"
 	_ "github.com/junminhong/thrurl/docs"
 	"github.com/junminhong/thrurl/domain"
+	"github.com/junminhong/thrurl/infrastructure/repo"
+	deliver "github.com/junminhong/thrurl/interfaces/http"
+	"github.com/junminhong/thrurl/interfaces/http/middleware"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"gorm.io/driver/postgres"
@@ -86,8 +86,8 @@ func setUpRedis() *redis.Client {
 	return client
 }
 func setUpDomain(router *gin.Engine, grpcClient *grpc.ClientConn, db *gorm.DB, redis *redis.Client) {
-	shortenUrlRepo := repository.NewShortenUrlRepo(db, redis)
-	shortenUrlCase := usecase.NewShortenUrlUseCase(shortenUrlRepo)
+	shortenUrlRepo := repo.NewShortenUrlRepo(db, redis)
+	shortenUrlCase := application.NewShortenUrlUseCase(shortenUrlRepo)
 	deliver.NewShortenUrlHandler(router, grpcClient, shortenUrlCase, shortenUrlRepo)
 }
 

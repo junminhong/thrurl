@@ -3,8 +3,8 @@ package http
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/junminhong/thrurl/api/v1/delivery/grpc/proto"
 	"github.com/junminhong/thrurl/domain"
+	"github.com/junminhong/thrurl/interfaces/grpc/proto"
 	"github.com/junminhong/thrurl/pkg/handler"
 	"github.com/junminhong/thrurl/pkg/requester"
 	"github.com/junminhong/thrurl/pkg/responser"

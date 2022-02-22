@@ -1,0 +1,62 @@
+basePath: /api/v1
+definitions:
+  handler.Response:
+    properties:
+      data: {}
+      message:
+        type: string
+      result_code:
+        type: integer
+      time_stamp:
+        type: string
+    type: object
+  v1.ShortUrlReqByNotLogin:
+    properties:
+      expired:
+        type: string
+      source_url:
+        type: string
+    required:
+    - source_url
+    type: object
+host: 127.0.0.1:9020
+info:
+  contact:
+    email: junminhong1110@gmail.com
+    name: junmin.hong
+    url: https://github.com/junminhong
+  description: 一個簡單易用且強大的縮網址服務
+  license:
+    name: MIT
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Thrurl API
+  version: "1.0"
+paths:
+  /short-url:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 縮短網址請求資料
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/v1.ShortUrlReqByNotLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.Response'
+      summary: 縮短網址
+      tags:
+      - url
+securityDefinitions:
+  JWT:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

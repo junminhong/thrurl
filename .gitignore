@@ -4,7 +4,6 @@
 .idea
 key.pem
 pubkey.pem
-docs
 log
 *.db
 config.yaml

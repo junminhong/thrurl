@@ -1,4 +1,4 @@
-package repository
+package repo
 
 import (
 	"github.com/go-redis/redis/v8"
