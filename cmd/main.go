@@ -72,7 +72,7 @@ func setUpDB() *postgresDB {
 	return &postgresDB{db: db}
 }
 func (postgresDB *postgresDB) migrationDB() {
-	err := postgresDB.db.AutoMigrate(&domain.ShortenUrl{}, &domain.ShortenUrlInfo{})
+	err := postgresDB.db.AutoMigrate(&domain.ShortUrl{}, &domain.ShortUrlInfo{}, &domain.ClickInfo{})
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -86,9 +86,9 @@ func setUpRedis() *redis.Client {
 	return client
 }
 func setUpDomain(router *gin.Engine, grpcClient *grpc.ClientConn, db *gorm.DB, redis *redis.Client) {
-	shortenUrlRepo := repo.NewShortenUrlRepo(db, redis)
+	shortenUrlRepo := repo.NewShortenUrlRepo(db, redis, grpcClient)
 	shortenUrlCase := application.NewShortenUrlUseCase(shortenUrlRepo)
-	deliver.NewShortenUrlHandler(router, grpcClient, shortenUrlCase, shortenUrlRepo)
+	deliver.NewShortenUrlHandler(router, shortenUrlCase, shortenUrlRepo)
 }
 
 func setUpGrpcClient() *grpc.ClientConn {
@@ -106,6 +106,6 @@ func main() {
 	redisClient := setUpRedis()
 	grpcClient := setUpGrpcClient()
 	setUpDomain(router, grpcClient, db.db, redisClient)
-	//db.migrationDB()
+	db.migrationDB()
 	router.Run("127.0.0.1:9220")
 }

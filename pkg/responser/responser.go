@@ -5,16 +5,18 @@ import (
 )
 
 var (
-	Ok                 = add(0, "ok")
-	ErrRequest         = add(400, "")
-	ErrNotFind         = add(404, "")
-	ErrForbidden       = add(403, "")
-	ErrNoPermission    = add(405, "")
-	ErrServer          = add(500, "")
-	ReqBindErr         = add(1000, "請依照API文件進行請求")
-	StoreShortenUrlErr = add(1001, "shorten url儲存失敗")
-	StoreShortenUrlOk  = add(1002, "shorten url儲存成功")
-	UrlLinkNotFoundErr = add(1003, "無效的連結")
+	Ok                     = add(0, "ok")
+	ErrRequest             = add(400, "")
+	ErrNotFind             = add(404, "")
+	ErrForbidden           = add(403, "")
+	ErrNoPermission        = add(405, "")
+	ErrServer              = add(500, "")
+	ReqBindErr             = add(1000, "請依照API文件進行請求")
+	SaveShortUrlErr        = add(1001, "shorten url生成失敗")
+	SaveShortUrlOk         = add(1002, "shorten url生成完成")
+	UrlLinkNotFoundErr     = add(1003, "無效的連結")
+	NotFoundAtomicTokenErr = add(1004, "無權限進行該請求")
+	NotFoundShortUrlErr    = add(1005, "找不到該短網址訊息")
 )
 
 func New(code int, msg string) ResponseFlag {
