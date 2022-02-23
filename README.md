@@ -1,5 +1,5 @@
 ## Thrurl Center
-基於Golang開發的一個簡單易用且強大的短網址服務。
+基於Golang開發的一個簡單且易用的開源短網址服務。
 
 ## 特點
 - 簡單且輕鬆就能將漏漏長的網址縮短
@@ -14,23 +14,23 @@
 - 提供有效期限設定，時間到就看不到嘍
 
 ## Demo
-[Live Demo](https://thrurl.jmh-su.com)
-
 [API DOC](https://thrurl-center.jmh-su.com/swagger/index.html)
 
-## 已完成功能
+[Demo - coming soon](https://thrurl.jmh-su.com)
 
-## 未完成功能
-- [ ] 縮短網址
-- [ ] 安全性分析
-- [ ] 點擊成效
+## 已完成功能
+- [X] 縮短網址
+- [X] 安全性分析
+- [x] 點擊成效
   - IP
   - 使用的瀏覽器
   - 使用的瀏覽器版本
   - 使用的平台
   - 使用的系統
-- [ ] AB測試
+- [x] AB測試
   - 可設定B出現的機率，A出現機率為(100-B出現機率)%
+
+## Feature
 - [ ] 圖片短網址
   - 檔案限制大小10MB
   - 密碼保護最多6碼

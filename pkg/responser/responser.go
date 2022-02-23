@@ -17,6 +17,11 @@ var (
 	UrlLinkNotFoundErr     = add(1003, "無效的連結")
 	NotFoundAtomicTokenErr = add(1004, "無權限進行該請求")
 	NotFoundShortUrlErr    = add(1005, "找不到該短網址訊息")
+	GetShortUrlListOk      = add(1006, "取得短網址列表成功")
+	CheckUrlSafeOk         = add(1007, "檢查網址安全成功")
+	RecordClickInfoErr     = add(1008, "點擊成效記錄失敗")
+	RecordClickInfoOk      = add(1009, "點擊成效記錄成功")
+	GetSourceUrlOk         = add(1010, "成功取得原始連結")
 )
 
 func New(code int, msg string) ResponseFlag {

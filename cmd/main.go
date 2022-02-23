@@ -11,6 +11,8 @@ import (
 	deliver "github.com/junminhong/thrurl/interfaces/http"
 	"github.com/junminhong/thrurl/interfaces/http/middleware"
 	"github.com/spf13/viper"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"google.golang.org/grpc"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -86,26 +88,36 @@ func setUpRedis() *redis.Client {
 	return client
 }
 func setUpDomain(router *gin.Engine, grpcClient *grpc.ClientConn, db *gorm.DB, redis *redis.Client) {
-	shortenUrlRepo := repo.NewShortenUrlRepo(db, redis, grpcClient)
-	shortenUrlCase := application.NewShortenUrlUseCase(shortenUrlRepo)
-	deliver.NewShortenUrlHandler(router, shortenUrlCase, shortenUrlRepo)
+	shortUrlRepo := repo.NewShortenUrlRepo(db, redis, grpcClient)
+	shortUrlApp := application.NewShortenUrlUseCase(shortUrlRepo)
+	deliver.NewShortenUrlHandler(router, shortUrlApp)
+	urlRepo := repo.NewUrlRepo(db)
+	urlApp := application.NewUrlApp(urlRepo)
+	deliver.NewUrlHandler(router, urlApp)
 }
 
 func setUpGrpcClient() *grpc.ClientConn {
-	conn, err := grpc.Dial("127.0.0.1:9205", grpc.WithInsecure())
+	conn, err := grpc.Dial(viper.GetString("APP.GRPC_HOST")+":"+viper.GetString("APP.GRPC_PORT"), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to dial: %v", err)
 	}
 	return conn
 }
 
-func main() {
+func setUpRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(middleware.Middleware())
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.DefaultModelsExpandDepth(-1)))
+	return router
+}
+
+func main() {
 	db := setUpDB()
+	go db.migrationDB()
 	redisClient := setUpRedis()
 	grpcClient := setUpGrpcClient()
+	router := setUpRouter()
 	setUpDomain(router, grpcClient, db.db, redisClient)
-	db.migrationDB()
-	router.Run("127.0.0.1:9220")
+	router.Run(viper.GetString("APP.HOST") + ":" + viper.GetString("APP.PORT"))
 }

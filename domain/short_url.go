@@ -25,7 +25,7 @@ type ShortUrlInfo struct {
 	ShortUrlID     int
 	SourceUrlA     string
 	SourceUrlB     string
-	ABPercent      string
+	ABPercent      int
 	IsMaliceUrlA   bool
 	MaliceUrlAType string
 	IsMaliceUrlB   bool
@@ -53,11 +53,17 @@ type ShortUrlRepository interface {
 	GetShortUrlLastID() (ID int, err error)
 	GetSourceUrl(trackerID string) (sourceUrl string, err error)
 	GetShortUrl(trackerID string) (shortUrl ShortUrl, err error)
+	GetShortUrlList(memberUUID string, limit int, offset int) (shortUrlLists []responser.ShortUrlList, err error)
 	GetShortUrlInfo(shortUrlID int) (shortUrlInfo ShortUrlInfo, err error)
+	GetShortUrlClickInfo(shortUrl ShortUrl) (clickInfos []responser.ShortUrlClickInfo, err error)
+	QuickGetShortUrlInfo(trackerID string) (shortUrlInfo ShortUrlInfo, err error)
 }
 
 type ShortUrlApp interface {
 	ShortenUrl(source string, atomicToken string) (resultCode int, message string, data responser.ShortenUrl)
-	GetSourceUrl(trackerId string) (sourceUrl string)
+	GetSourceUrl(trackerID string) (resultCode int, message string, sourceUrl string)
+	GetShortUrl(trackerID string, atomicToken string) (resultCode int, message string, data responser.ShortUrlInfo)
+	GetShortUrlList(limit int, offset int, atomicToken string) (resultCode int, message string, data []responser.ShortUrlList, page int)
+	GetShortUrlClickInfo(trackerID string, atomicToken string) (resultCode int, message string, data []responser.ShortUrlClickInfo)
 	EditShortUrl(editShortUrl requester.EditShortUrl, atomicToken string) (resultCode int, message string)
 }

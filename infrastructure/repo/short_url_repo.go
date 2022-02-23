@@ -5,6 +5,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/junminhong/thrurl/domain"
 	"github.com/junminhong/thrurl/infrastructure/grpc/proto"
+	"github.com/junminhong/thrurl/pkg/responser"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 )
@@ -13,6 +14,17 @@ type shortUrlRepo struct {
 	db         *gorm.DB
 	redis      *redis.Client
 	grpcClient *grpc.ClientConn
+}
+
+func (shortUrlRepo *shortUrlRepo) GetShortUrlClickInfo(shortUrl domain.ShortUrl) (shortUrlClickInfos []responser.ShortUrlClickInfo, err error) {
+	clickInfo := domain.ClickInfo{}
+	rows, err := shortUrlRepo.db.Model(&clickInfo).Where("short_url_id = ?", shortUrl.ID).Rows()
+	shortUrlClickInfo := responser.ShortUrlClickInfo{}
+	for rows.Next() {
+		shortUrlRepo.db.ScanRows(rows, &shortUrlClickInfo)
+		shortUrlClickInfos = append(shortUrlClickInfos, shortUrlClickInfo)
+	}
+	return shortUrlClickInfos, err
 }
 
 func NewShortenUrlRepo(db *gorm.DB, redis *redis.Client, grpcClient *grpc.ClientConn) domain.ShortUrlRepository {
@@ -44,7 +56,7 @@ func (shortUrlRepo *shortUrlRepo) GetSourceUrl(trackerID string) (sourceUrl stri
 	if err = shortUrlRepo.db.Where("tracker_id=?", trackerID).First(&shortUrl).Error; err != nil {
 		return "", err
 	}
-	if err = shortUrlRepo.db.Where("short_url_id=?", shortUrl.ID).First(&shortUrlInfo).Error; err != nil {
+	if err = shortUrlRepo.db.Model(&shortUrl).Association("ShortUrlInfo").Find(&shortUrlInfo); err != nil {
 		return "", err
 	}
 	return shortUrlInfo.SourceUrlA, err
@@ -61,5 +73,28 @@ func (shortUrlRepo *shortUrlRepo) GetShortUrl(trackerID string) (shortUrl domain
 
 func (shortUrlRepo *shortUrlRepo) GetShortUrlInfo(shortUrlID int) (shortUrlInfo domain.ShortUrlInfo, err error) {
 	err = shortUrlRepo.db.Where("short_url_id=?", shortUrlID).First(&shortUrlInfo).Error
+	return shortUrlInfo, err
+}
+
+func (shortUrlRepo shortUrlRepo) GetShortUrlList(memberUUID string, limit int, offset int) (shortUrlLists []responser.ShortUrlList, err error) {
+	shortUrl := domain.ShortUrl{}
+	rows, err := shortUrlRepo.db.Model(&shortUrl).Where("member_id = ?", memberUUID).Limit(limit).Offset(offset).Rows()
+	defer rows.Close()
+	shortUrlList := responser.ShortUrlList{}
+	for rows.Next() {
+		shortUrlRepo.db.ScanRows(rows, &shortUrlList)
+		shortUrlLists = append(shortUrlLists, shortUrlList)
+	}
+	return shortUrlLists, err
+}
+
+func (shortUrlRepo shortUrlRepo) QuickGetShortUrlInfo(trackerID string) (shortUrlInfo domain.ShortUrlInfo, err error) {
+	shortUrl := domain.ShortUrl{}
+	if err = shortUrlRepo.db.Where("tracker_id=?", trackerID).First(&shortUrl).Error; err != nil {
+		return shortUrlInfo, err
+	}
+	if err = shortUrlRepo.db.Model(&shortUrl).Association("ShortUrlInfo").Find(&shortUrlInfo); err != nil {
+		return shortUrlInfo, err
+	}
 	return shortUrlInfo, err
 }

@@ -3,11 +3,11 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 )
 
 type client struct {
@@ -55,7 +55,7 @@ func SafeUrlCheck(url string) (bool, string) {
 		},
 	}
 	data, _ := json.Marshal(safeUrlReq)
-	response, _ := http.Post(os.Getenv("SAFE_BROWSING_API"), "application/json", bytes.NewBuffer(data))
+	response, err := http.Post(viper.GetString("APP.SAFE_BROWSING_API"), "application/json", bytes.NewBuffer(data))
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Println(err.Error())
