@@ -1,3 +1,5 @@
+# 🚧 此項目正在重構中，詳情請看v1-dev分支
+
 基於Golang開發的一個簡單易用且強大的短網址服務
 
 [Live Demo](https://thrurl.herokuapp.com/)
