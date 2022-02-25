@@ -71,7 +71,7 @@ func SafeUrlCheck(url string) (bool, string) {
 
 func UrlLifeCheck(source string) bool {
 	url, _ := url.ParseRequestURI(source)
-	if url == nil {
+	if url == nil || url.Host == "" || url.Scheme == "" {
 		return false
 	}
 	return true

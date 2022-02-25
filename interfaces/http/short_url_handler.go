@@ -19,6 +19,7 @@ type shortUrlHandler struct {
 func NewShortenUrlHandler(router *gin.Engine, shortUrlApp domain.ShortUrlApp) {
 	handler := &shortUrlHandler{shortUrlApp: shortUrlApp}
 	router.GET("/:tracker-id", handler.redirect)
+	router.Static("/api/v1/image", "./static")
 	router.POST("/api/v1/short-url", handler.shortenUrl)
 	router.GET("/api/v1/short-url/redirect", handler.getRedirectUrl)
 	needAtomicToken := router.Group("/api/v1/short-url").Use(middleware.CheckAtomicTokenMiddleware())
@@ -132,7 +133,7 @@ func (shortUrlHandler *shortUrlHandler) redirect(c *gin.Context) {
 
 func (shortUrlHandler *shortUrlHandler) getRedirectUrl(c *gin.Context) {
 	resultCode, message, sourceUrl := shortUrlHandler.shortUrlApp.GetSourceUrl(c.Query("tracker-id"))
-	c.JSON(http.StatusMovedPermanently, responser.Response{
+	c.JSON(http.StatusOK, responser.Response{
 		ResultCode: resultCode,
 		Message:    message,
 		Data: responser.GetSourceUrl{

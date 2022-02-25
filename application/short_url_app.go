@@ -6,7 +6,6 @@ import (
 	"github.com/junminhong/thrurl/pkg/handler"
 	"github.com/junminhong/thrurl/pkg/requester"
 	"github.com/junminhong/thrurl/pkg/responser"
-	"github.com/spf13/viper"
 	"strings"
 )
 
@@ -27,7 +26,7 @@ func (shortUrlApp *shortUrlApp) GetShortUrlClickInfo(trackerID string, atomicTok
 		return responser.NotFoundAtomicTokenErr.Code(), responser.NotFoundAtomicTokenErr.Message(), []responser.ShortUrlClickInfo{}
 	}
 	clickInfos, _ := shortUrlApp.shortUrlRepo.GetShortUrlClickInfo(shortUrl)
-	return 0, "", clickInfos
+	return responser.GetClickInfoOk.Code(), responser.GetClickInfoOk.Message(), clickInfos
 }
 
 func NewShortenUrlUseCase(shortenUrlRepo domain.ShortUrlRepository) domain.ShortUrlApp {
@@ -51,7 +50,7 @@ func (shortUrlApp *shortUrlApp) ShortenUrl(source string, atomicToken string) (r
 		return responser.SaveShortUrlErr.Code(), responser.SaveShortUrlErr.Message(), responser.ShortenUrl{}
 	}
 	return responser.SaveShortUrlOk.Code(), responser.SaveShortUrlOk.Message(), responser.ShortenUrl{
-		ShortenUrl: viper.GetString("APP.SHORT_URL_HOST") + "/" + trackerID,
+		ShortenUrl: trackerID,
 	}
 }
 
@@ -64,6 +63,9 @@ func (shortUrlApp *shortUrlApp) GetSourceUrl(trackerID string) (resultCode int, 
 }
 
 func (shortUrlApp *shortUrlApp) EditShortUrl(editShortUrl requester.EditShortUrl, atomicToken string) (resultCode int, message string) {
+	if editShortUrl.SourceUrlB != "" && !handler.UrlLifeCheck(editShortUrl.SourceUrlB) || !handler.UrlLifeCheck(editShortUrl.SourceUrlA) {
+		return responser.UrlLinkNotFoundErr.Code(), responser.UrlLinkNotFoundErr.Message()
+	}
 	memberUUID, _ := shortUrlApp.shortUrlRepo.GetMemberUUID(atomicToken)
 	if memberUUID == "" {
 		return responser.NotFoundAtomicTokenErr.Code(), responser.NotFoundAtomicTokenErr.Message()
@@ -97,9 +99,10 @@ func (shortUrlApp *shortUrlApp) GetShortUrlList(limit int, offset int, atomicTok
 	if memberUUID == "" {
 		return responser.NotFoundAtomicTokenErr.Code(), responser.NotFoundAtomicTokenErr.Message(), []responser.ShortUrlList{}, 0
 	}
+	shortUrlListCount, _ := shortUrlApp.shortUrlRepo.GetShortUrlListCount(memberUUID)
 	shortUrlLists, _ := shortUrlApp.shortUrlRepo.GetShortUrlList(memberUUID, limit, offset)
-	page = len(shortUrlLists) / limit
-	if len(shortUrlLists)%limit != 0 {
+	page = int(shortUrlListCount / int64(limit))
+	if shortUrlListCount%int64(limit) != 0 {
 		page += 1
 	}
 	return responser.GetShortUrlListOk.Code(), responser.GetShortUrlListOk.Message(), shortUrlLists, page

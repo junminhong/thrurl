@@ -6,7 +6,7 @@ type ShortenUrl struct {
 
 type EditShortUrl struct {
 	TrackerID  string `json:"tracker_id" binding:"required"`
-	SourceUrlA string `json:"source_url_a" binding:"required"`
+	SourceUrlA string `json:"source_url_a"`
 	SourceUrlB string `json:"source_url_b"`
 	ABPercent  int    `json:"ab_percent"`
 	WhoClick   bool   `json:"who_click"`

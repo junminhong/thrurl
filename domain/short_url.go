@@ -54,6 +54,7 @@ type ShortUrlRepository interface {
 	GetSourceUrl(trackerID string) (sourceUrl string, err error)
 	GetShortUrl(trackerID string) (shortUrl ShortUrl, err error)
 	GetShortUrlList(memberUUID string, limit int, offset int) (shortUrlLists []responser.ShortUrlList, err error)
+	GetShortUrlListCount(memberUUID string) (count int64, err error)
 	GetShortUrlInfo(shortUrlID int) (shortUrlInfo ShortUrlInfo, err error)
 	GetShortUrlClickInfo(shortUrl ShortUrl) (clickInfos []responser.ShortUrlClickInfo, err error)
 	QuickGetShortUrlInfo(trackerID string) (shortUrlInfo ShortUrlInfo, err error)

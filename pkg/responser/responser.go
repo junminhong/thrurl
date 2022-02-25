@@ -22,6 +22,7 @@ var (
 	RecordClickInfoErr     = add(1008, "點擊成效記錄失敗")
 	RecordClickInfoOk      = add(1009, "點擊成效記錄成功")
 	GetSourceUrlOk         = add(1010, "成功取得原始連結")
+	GetClickInfoOk         = add(1011, "成功取得點擊成效")
 )
 
 func New(code int, msg string) ResponseFlag {

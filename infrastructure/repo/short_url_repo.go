@@ -16,6 +16,12 @@ type shortUrlRepo struct {
 	grpcClient *grpc.ClientConn
 }
 
+func (shortUrlRepo shortUrlRepo) GetShortUrlListCount(memberUUID string) (count int64, err error) {
+	shortUrl := domain.ShortUrl{}
+	err = shortUrlRepo.db.Model(&shortUrl).Where("member_id=?", memberUUID).Count(&count).Error
+	return count, err
+}
+
 func (shortUrlRepo *shortUrlRepo) GetShortUrlClickInfo(shortUrl domain.ShortUrl) (shortUrlClickInfos []responser.ShortUrlClickInfo, err error) {
 	clickInfo := domain.ClickInfo{}
 	rows, err := shortUrlRepo.db.Model(&clickInfo).Where("short_url_id = ?", shortUrl.ID).Rows()
@@ -78,7 +84,8 @@ func (shortUrlRepo *shortUrlRepo) GetShortUrlInfo(shortUrlID int) (shortUrlInfo 
 
 func (shortUrlRepo shortUrlRepo) GetShortUrlList(memberUUID string, limit int, offset int) (shortUrlLists []responser.ShortUrlList, err error) {
 	shortUrl := domain.ShortUrl{}
-	rows, err := shortUrlRepo.db.Model(&shortUrl).Where("member_id = ?", memberUUID).Limit(limit).Offset(offset).Rows()
+	// rows, err := shortUrlRepo.db.Model(&shortUrl).Joins("ShortUrlInfo").Where("member_id = ?", memberUUID).Limit(limit).Offset(offset).Rows()
+	rows, err := shortUrlRepo.db.Model(&shortUrl).Order("short_urls.id asc").Select("*").Joins("INNER JOIN short_url_infos on short_url_infos.short_url_id=short_urls.id").Where("member_id=?", memberUUID).Limit(limit).Offset(offset).Rows()
 	defer rows.Close()
 	shortUrlList := responser.ShortUrlList{}
 	for rows.Next() {

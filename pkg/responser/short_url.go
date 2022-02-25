@@ -30,8 +30,11 @@ type ShortUrlClickInfos struct {
 }
 
 type ShortUrlList struct {
-	TrackerID string `json:"tracker_id"`
-	WhoClick  bool   `json:"who_click"`
+	TrackerID  string `json:"tracker_id"`
+	SourceUrlA string `json:"source_url_a"`
+	SourceUrlB string `json:"source_url_b"`
+	ABPercent  int    `json:"ab_percent"`
+	WhoClick   bool   `json:"who_click"`
 }
 
 type ShortUrlLists struct {
