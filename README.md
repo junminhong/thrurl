@@ -18,6 +18,15 @@
 
 [Demo - coming soon](https://thrurl.jmh-su.com)
 
+### Home
+![](static/images/1.png)
+### 短網址中心
+![](static/images/3.png)
+### 點擊成效報告
+![](static/images/4.png)
+### 導向前檢查網址安全性
+![](static/images/2.png)
+
 ## 已完成功能
 - [X] 縮短網址
 - [X] 安全性分析
