@@ -1,11 +1,9 @@
-package base62
+package handler
 
 import (
 	"errors"
 	"math"
-	"math/rand"
 	"strings"
-	"time"
 )
 
 var (
@@ -34,16 +32,4 @@ func Decode(s string) (int, error) {
 		r += pos * int(math.Pow(float64(Base), float64(pow)))
 	}
 	return int(r), nil
-}
-
-func GetSaltEncode(value int, maxSaltLen int) (saltBase62 string) {
-	base62 := Encode(value)
-	saltLen := maxSaltLen - len(base62)
-	rand.Seed(time.Now().UnixNano())
-	salt := Encode(time.Now().Nanosecond())
-	chars := []rune(salt)
-	for index := 0; index < saltLen; index++ {
-		saltBase62 += string(chars[rand.Intn(len(salt))])
-	}
-	return saltBase62 + base62
 }

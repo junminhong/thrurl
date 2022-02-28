@@ -4,8 +4,7 @@
 .idea
 key.pem
 pubkey.pem
+*.pb.go
+docs
 log
 *.db
-config.yaml
-docker-compose.yaml
-pgdata
