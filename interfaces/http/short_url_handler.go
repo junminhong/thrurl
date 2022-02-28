@@ -36,7 +36,7 @@ func NewShortenUrlHandler(router *gin.Engine, shortUrlApp domain.ShortUrlApp) {
 // @version 1.0
 // @Accept application/json
 // @produce application/json
-// @Param Authorization header string false "Atomic Token" default(Bearer <請在這邊輸入Atomic Token>)
+// @Param Authorization header string false "Atomic Token" default(Bearer )
 // @param data body requester.ShortenUrl true "請求資料"
 // @Success 1002 {object} responser.Response "短連結生成成功"
 // @failure 1000 {object} string "請依照API文件進行請求"
@@ -72,12 +72,12 @@ func (shortUrlHandler *shortUrlHandler) shortenUrl(c *gin.Context) {
 // @Accept application/json
 // @produce application/json
 // @Param Authorization header string true "Atomic Token" default(Bearer <請在這邊輸入Atomic Token>)
-// @param data body requester.ShortenUrl true "請求資料"
+// @Param  tracker-id  query string  true  "tracker-id"
 // @Success 1002 {object} responser.Response "短連結生成成功"
 // @failure 1000 {object} string "請依照API文件進行請求"
 // @failure 1001 {object} string "短連結生成失敗"
 // @failure 1003 {object} string "無效連結"
-// @Router /api/v1/short-url [post]
+// @Router /api/v1/short-url [get]
 func (shortUrlHandler *shortUrlHandler) getShortUrl(c *gin.Context) {
 	atomicToken := requester.GetAtomicToken(c)
 	trackerID := c.Query("tracker-id")
@@ -107,12 +107,14 @@ func (shortUrlHandler *shortUrlHandler) getShortUrl(c *gin.Context) {
 // @Accept application/json
 // @produce application/json
 // @Param Authorization header string true "Atomic Token" default(Bearer <請在這邊輸入Atomic Token>)
-// @param data body requester.ShortenUrl true "請求資料"
-// @Success 1002 {object} responser.Response "短連結生成成功"
+// @param data body requester.EditShortUrl true "請求資料"
+// @Success 1002 {object} responser.Response "短連結保存成功"
 // @failure 1000 {object} string "請依照API文件進行請求"
-// @failure 1001 {object} string "短連結生成失敗"
+// @failure 1001 {object} string "短連結保存失敗"
 // @failure 1003 {object} string "無效連結"
-// @Router /api/v1/short-url [post]
+// @failure 1004 {object} string "你沒有權限發起該請求"
+// @failure 1005 {object} string "找不到該連結訊息"
+// @Router /api/v1/short-url [put]
 func (shortUrlHandler *shortUrlHandler) editShortUrl(c *gin.Context) {
 	atomicToken := requester.GetAtomicToken(c)
 	request := requester.EditShortUrl{}
@@ -134,6 +136,17 @@ func (shortUrlHandler *shortUrlHandler) editShortUrl(c *gin.Context) {
 	})
 }
 
+// getShortUrlList
+// @Summary 取得短連結的列表
+// @Description
+// @Tags short-url
+// @version 1.0
+// @Accept application/json
+// @produce application/json
+// @Param Authorization header string true "Atomic Token" default(Bearer <請在這邊輸入Atomic Token>)
+// @Success 1006 {object} responser.Response "取得短連結列表"
+// @failure 1004 {object} string "你沒有權限發起該請求"
+// @Router /api/v1/short-url/list [get]
 func (shortUrlHandler *shortUrlHandler) getShortUrlList(c *gin.Context) {
 	// page size、offset、limit
 	// 預設一頁10個
@@ -160,6 +173,16 @@ func (shortUrlHandler *shortUrlHandler) redirect(c *gin.Context) {
 	//c.Redirect(http.StatusMovedPermanently, sourceUrl)
 }
 
+// getRedirectUrl
+// @Summary 取得轉址要去的目標
+// @Description
+// @Tags short-url
+// @version 1.0
+// @Accept application/json
+// @produce application/json
+// @Param  tracker-id  query string  true  "tracker-id"
+// @Success 1010 {object} responser.Response "成功取得原始連結"
+// @Router /api/v1/short-url/redirect [get]
 func (shortUrlHandler *shortUrlHandler) getRedirectUrl(c *gin.Context) {
 	resultCode, message, sourceUrl := shortUrlHandler.shortUrlApp.GetSourceUrl(c.Query("tracker-id"))
 	c.JSON(http.StatusOK, responser.Response{
@@ -172,6 +195,19 @@ func (shortUrlHandler *shortUrlHandler) getRedirectUrl(c *gin.Context) {
 	})
 }
 
+// getShortUrlClickInfo
+// @Summary 取得短連結的點擊成效
+// @Description
+// @Tags short-url
+// @version 1.0
+// @Accept application/json
+// @produce application/json
+// @Param Authorization header string true "Atomic Token" default(Bearer <請在這邊輸入Atomic Token>)
+// @Param  tracker-id  query string  true  "tracker-id"
+// @Success 1011 {object} responser.Response "成功取得點擊成效"
+// @failure 1004 {object} string "你沒有權限發起該請求"
+// @failure 1005 {object} string "找不到該短連結的點擊成效"
+// @Router /api/v1/short-url/click-info [get]
 func (shortUrlHandler *shortUrlHandler) getShortUrlClickInfo(c *gin.Context) {
 	atomicToken := requester.GetAtomicToken(c)
 	resultCode, message, data := shortUrlHandler.shortUrlApp.GetShortUrlClickInfo(c.Query("tracker-id"), atomicToken)

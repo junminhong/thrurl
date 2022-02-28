@@ -4,7 +4,7 @@ package docs
 
 import "github.com/swaggo/swag"
 
-const docTemplate_swagger = `{
+const docTemplate = `{
     "schemes": {{ marshal .Schemes }},
     "swagger": "2.0",
     "info": {
@@ -26,6 +26,130 @@ const docTemplate_swagger = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/v1/short-url": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "short-url"
+                ],
+                "summary": "取得短連結的訊息",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003c請在這邊輸入Atomic Token\u003e",
+                        "description": "Atomic Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "tracker-id",
+                        "name": "tracker-id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1000": {
+                        "description": "請依照API文件進行請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "短連結生成失敗",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "短連結生成成功",
+                        "schema": {
+                            "$ref": "#/definitions/responser.Response"
+                        }
+                    },
+                    "1003": {
+                        "description": "無效連結",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "short-url"
+                ],
+                "summary": "編輯短連結",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003c請在這邊輸入Atomic Token\u003e",
+                        "description": "Atomic Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "請求資料",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requester.EditShortUrl"
+                        }
+                    }
+                ],
+                "responses": {
+                    "1000": {
+                        "description": "請依照API文件進行請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1001": {
+                        "description": "短連結保存失敗",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1002": {
+                        "description": "短連結保存成功",
+                        "schema": {
+                            "$ref": "#/definitions/responser.Response"
+                        }
+                    },
+                    "1003": {
+                        "description": "無效連結",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1004": {
+                        "description": "你沒有權限發起該請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1005": {
+                        "description": "找不到該連結訊息",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "post": {
                 "consumes": [
                     "application/json"
@@ -40,7 +164,7 @@ const docTemplate_swagger = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "default": "Bearer \u003c請在這邊輸入Atomic Token\u003e",
+                        "default": "Bearer",
                         "description": "Atomic Token",
                         "name": "Authorization",
                         "in": "header"
@@ -56,6 +180,12 @@ const docTemplate_swagger = `{
                     }
                 ],
                 "responses": {
+                    "1000": {
+                        "description": "請依照API文件進行請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "1001": {
                         "description": "短連結生成失敗",
                         "schema": {
@@ -76,9 +206,232 @@ const docTemplate_swagger = `{
                     }
                 }
             }
+        },
+        "/api/v1/short-url/click-info": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "short-url"
+                ],
+                "summary": "取得短連結的點擊成效",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003c請在這邊輸入Atomic Token\u003e",
+                        "description": "Atomic Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "tracker-id",
+                        "name": "tracker-id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1004": {
+                        "description": "你沒有權限發起該請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1005": {
+                        "description": "找不到該短連結的點擊成效",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1011": {
+                        "description": "成功取得點擊成效",
+                        "schema": {
+                            "$ref": "#/definitions/responser.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/short-url/list": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "short-url"
+                ],
+                "summary": "取得短連結的列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003c請在這邊輸入Atomic Token\u003e",
+                        "description": "Atomic Token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1004": {
+                        "description": "你沒有權限發起該請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1006": {
+                        "description": "取得短連結列表",
+                        "schema": {
+                            "$ref": "#/definitions/responser.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/short-url/redirect": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "short-url"
+                ],
+                "summary": "取得轉址要去的目標",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "tracker-id",
+                        "name": "tracker-id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1010": {
+                        "description": "成功取得原始連結",
+                        "schema": {
+                            "$ref": "#/definitions/responser.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/url/check-safe": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "url"
+                ],
+                "summary": "檢查網址安全",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "source-url",
+                        "name": "source-url",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1005": {
+                        "description": "不是有效連結",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1007": {
+                        "description": "檢查完成",
+                        "schema": {
+                            "$ref": "#/definitions/responser.CheckUrlSafe"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/url/record": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "url"
+                ],
+                "summary": "記錄點擊成效",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "tracker-id",
+                        "name": "tracker-id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "1000": {
+                        "description": "請依照API文件發起請求",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1008": {
+                        "description": "記錄失敗",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "1009": {
+                        "description": "記錄完成",
+                        "schema": {
+                            "$ref": "#/definitions/responser.CheckUrlSafe"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "requester.EditShortUrl": {
+            "type": "object",
+            "required": [
+                "tracker_id"
+            ],
+            "properties": {
+                "ab_percent": {
+                    "type": "integer"
+                },
+                "source_url_a": {
+                    "type": "string"
+                },
+                "source_url_b": {
+                    "type": "string"
+                },
+                "tracker_id": {
+                    "type": "string"
+                },
+                "who_click": {
+                    "type": "boolean"
+                }
+            }
+        },
         "requester.ShortenUrl": {
             "type": "object",
             "required": [
@@ -86,6 +439,17 @@ const docTemplate_swagger = `{
             ],
             "properties": {
                 "source_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "responser.CheckUrlSafe": {
+            "type": "object",
+            "properties": {
+                "result": {
+                    "type": "boolean"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -105,28 +469,21 @@ const docTemplate_swagger = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "JWT": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
-// SwaggerInfo_swagger holds exported Swagger Info so clients can modify it
-var SwaggerInfo_swagger = &swag.Spec{
+// SwaggerInfo holds exported Swagger Info so clients can modify it
+var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "127.0.0.1:9020",
-	BasePath:         "/api/v1",
+	Host:             "thrurl-center.jmh-su.com",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Thrurl API",
 	Description:      "一個簡單易用且強大的縮網址服務",
 	InfoInstanceName: "swagger",
-	SwaggerTemplate:  docTemplate_swagger,
+	SwaggerTemplate:  docTemplate,
 }
 
 func init() {
-	swag.Register(SwaggerInfo_swagger.InstanceName(), SwaggerInfo_swagger)
+	swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)
 }

@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm/logger"
 	"log"
 	"os"
+	"strings"
 )
 
 // @title           Thrurl API
@@ -33,18 +34,19 @@ import (
 // @license.name  MIT
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      127.0.0.1:9020
-// @BasePath  /api/v1
-// @securityDefinitions.apiKey JWT
-// @in header
-// @name Authorization
+// @host thrurl-center.jmh-su.com
+const viperEnv = "release"
 
 func init() {
 	path, err := os.Getwd()
 	if err != nil {
 		log.Println(err.Error())
 	}
-	viper.SetConfigName("config")
+	if strings.Compare(viperEnv, "release") == 0 {
+		viper.SetConfigName("config")
+	} else {
+		viper.SetConfigName("config_dev")
+	}
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(path)
 	if err := viper.ReadInConfig(); err != nil {
@@ -105,6 +107,9 @@ func setUpGrpcClient() *grpc.ClientConn {
 }
 
 func setUpRouter() *gin.Engine {
+	if strings.Compare(viper.GetString("APP.GIN_MODE"), "release") == 0 {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	router := gin.Default()
 	router.Use(middleware.Middleware())
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,

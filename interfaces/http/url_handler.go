@@ -22,6 +22,17 @@ func NewUrlHandler(router *gin.Engine, urlApp domain.UrlApp) {
 
 }
 
+// checkUrlSafe
+// @Summary 檢查網址安全
+// @Description
+// @Tags url
+// @version 1.0
+// @Accept application/json
+// @produce application/json
+// @Param  source-url  query string  true  "source-url"
+// @Success 1007 {object} responser.CheckUrlSafe "檢查完成"
+// @failure 1005 {object} string "不是有效連結"
+// @Router /api/v1/url/check-safe [get]
 func (urlHandler *urlHandler) checkUrlSafe(c *gin.Context) {
 	sourceUrl := c.Query("source-url")
 	if !handler.UrlLifeCheck(sourceUrl) {
@@ -42,6 +53,18 @@ func (urlHandler *urlHandler) checkUrlSafe(c *gin.Context) {
 	})
 }
 
+// recordWhoClick
+// @Summary 記錄點擊成效
+// @Description
+// @Tags url
+// @version 1.0
+// @Accept application/json
+// @produce application/json
+// @Param tracker-id query string  true "tracker-id"
+// @Success 1009 {object} responser.CheckUrlSafe "記錄完成"
+// @failure 1000 {object} string "請依照API文件發起請求"
+// @failure 1008 {object} string "記錄失敗"
+// @Router /api/v1/url/record [get]
 func (urlHandler *urlHandler) recordWhoClick(c *gin.Context) {
 	trackerID := c.Query("tracker-id")
 	if trackerID == "" {

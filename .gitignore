@@ -7,5 +7,6 @@ pubkey.pem
 log
 *.db
 config.yaml
+config_dev.yaml
 docker-compose.yaml
 pgdata
