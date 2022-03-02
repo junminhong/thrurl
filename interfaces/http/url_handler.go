@@ -7,7 +7,9 @@ import (
 	"github.com/junminhong/thrurl/pkg/requester"
 	"github.com/junminhong/thrurl/pkg/responser"
 	"github.com/mssola/user_agent"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -78,8 +80,14 @@ func (urlHandler *urlHandler) recordWhoClick(c *gin.Context) {
 	}
 	ua := user_agent.New(c.GetHeader("User-Agent"))
 	browserName, browserVersion := ua.Browser()
+	clientIP := net.ParseIP(c.ClientIP()).To4()
+	clientCountry := c.GetHeader("CF-IPCountry")
+	if strings.Compare(c.GetHeader("CF-IPCountry"), "XX") == 0 {
+		clientCountry = ""
+	}
 	shortUrlInfo := requester.RecordShortUrlInfo{
-		ClickerIP:      c.ClientIP(),
+		ClickerIP:      clientIP.String(),
+		ClickerCountry: clientCountry,
 		Browser:        browserName,
 		BrowserVersion: browserVersion,
 		Platform:       ua.Platform(),
