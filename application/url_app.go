@@ -17,6 +17,7 @@ func (urlApp *urlApp) RecordShortUrlClickInfo(trackerID string, request requeste
 	}
 	clickInfo := domain.ClickInfo{
 		ClickerIP:      request.ClickerIP,
+		ClickerCountry: request.ClickerCountry,
 		Browser:        request.Browser,
 		BrowserVersion: request.BrowserVersion,
 		OS:             request.OS,

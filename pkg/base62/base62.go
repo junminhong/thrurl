@@ -3,9 +3,7 @@ package base62
 import (
 	"errors"
 	"math"
-	"math/rand"
 	"strings"
-	"time"
 )
 
 var (
@@ -39,11 +37,11 @@ func Decode(s string) (int, error) {
 func GetSaltEncode(value int, maxSaltLen int) (saltBase62 string) {
 	base62 := Encode(value)
 	saltLen := maxSaltLen - len(base62)
-	rand.Seed(time.Now().UnixNano())
-	salt := Encode(time.Now().Nanosecond())
-	chars := []rune(salt)
+	// rand.Seed(time.Now().UnixNano())
+	// salt := Encode(int(time.Now().UnixNano()))
+	chars := []rune("thrurl")
 	for index := 0; index < saltLen; index++ {
-		saltBase62 += string(chars[rand.Intn(len(salt))])
+		saltBase62 += string(chars[index])
 	}
-	return saltBase62 + base62
+	return base62 + saltBase62
 }
